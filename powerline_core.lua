@@ -96,6 +96,7 @@ currentTextColor = colorWhite.foreground
 
 -- Constants
 -- Symbols
+virtualenv = ""
 newLineSymbol = "\n"
 
 -- Default symbols
@@ -132,7 +133,8 @@ function addArrow(text, oldColor, newColor)
 	-- Old color is the color of the previous segment
 	-- New color is the color of the next segment
 	-- An arrow is a character written using the old color on a background of the new color
-	text = addTextWithColor(text, plc_prompt_arrowSymbol, oldColor.foreground, newColor.background)
+	text = addTextWithColor(text, plc_prompt_arrowSymbol, oldColor.foreground, colorBlack.background)
+	text = addTextWithColor(text, plc_prompt_arrowSymbol, colorBlack.foreground, newColor.background)
 	return text
 end 
 
@@ -167,11 +169,11 @@ function addSegment(text, textColor, fillColor)
 	local newPrompt = ""
 	-- If there's an existing segment
 	if currentSegments == "" then 
-		newPrompt = ""
+		newPrompt = addTextWithColor("", plc_prompt_arrowSymbol, colorBlack.foreground, fillColor.background)
 	else 
 		-- Remove the existing arrow 
 		-- The last arrow with all its surrounding escape characters and graphics mode settings count as 7 characters
-		newPrompt = string.sub(currentSegments, 0, string.len(currentSegments) - 7)
+		newPrompt = string.sub(currentSegments, 0, string.len(currentSegments) - 30)
 		-- Add arrow with color of new segment
 		newPrompt = addArrow(newPrompt, currentFillColor, fillColor)
 	end 
@@ -187,7 +189,17 @@ function addSegment(text, textColor, fillColor)
 
 	-- Update clink prompt
 	clink.prompt.value = newPrompt
-end 
+end
+
+---
+-- get virtualenv from old prompt
+---
+function get_virtualenv()
+	local old_prompt_lines = string.split(clink.prompt.value, '\n')
+	-- the last line contains virtualenv
+	local last_line_prompt = old_prompt_lines[#old_prompt_lines]
+	virtualenv = last_line_prompt:match('%(.+%)')
+end
 
 ---
 -- Resets the prompt and all state variables
@@ -202,8 +214,12 @@ end
 ---
 -- Closes the prompts with a new line and the lamb symbol
 ---
-function closePrompt() 
-	clink.prompt.value = clink.prompt.value..newLineSymbol..plc_prompt_lambSymbol.." "
+function closePrompt()
+	if virtualenv then
+		clink.prompt.value = clink.prompt.value..newLineSymbol..virtualenv..' '..plc_prompt_lambSymbol.." "
+	else
+		clink.prompt.value = clink.prompt.value..newLineSymbol..plc_prompt_lambSymbol.." "
+	end
 end
 
 ---
@@ -253,5 +269,8 @@ function get_git_dir(path)
 end
 
 -- Register filters for resetting the prompt and closing it before and after all addons
-clink.prompt.register_filter(resetPrompt, 51)
+-- Before reset prompt, get virtualenv from old 
+-- TODO: control register_filter function priority
+clink.prompt.register_filter(get_virtualenv, 51)
+clink.prompt.register_filter(resetPrompt, 52)
 clink.prompt.register_filter(closePrompt, 99)
