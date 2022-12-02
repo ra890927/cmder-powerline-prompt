@@ -195,7 +195,7 @@ end
 -- get virtualenv from old prompt
 ---
 function get_virtualenv()
-	local old_prompt_lines = string.split(clink.prompt.value, '\n')
+	local old_prompt_lines = clink.split(clink.prompt.value, '\n')
 	-- the last line contains virtualenv
 	local last_line_prompt = old_prompt_lines[#old_prompt_lines]
 	virtualenv = last_line_prompt:match('%(.+%)')
